@@ -1,18 +1,42 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 
 interface PreviewFrameProps {
   html: string;
   isLoading: boolean;
+  isPro: boolean;
+  onProClick: () => void;
 }
 
-export default function PreviewFrame({ html, isLoading }: PreviewFrameProps) {
+const WATERMARK_HTML = `
+<div style="position:fixed;bottom:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#0a0e27,#111535);padding:10px 20px;text-align:center;font-family:system-ui,sans-serif;border-top:2px solid #00f0ff;">
+  <a href="https://readme-to-landing.netlify.app" target="_blank" rel="noopener" style="color:#00f0ff;text-decoration:none;font-size:13px;font-weight:600;letter-spacing:0.5px;">
+    Built with README to Landing — Turn your README into a landing page in seconds
+  </a>
+</div>`;
+
+function injectWatermark(html: string): string {
+  if (html.includes("</body>")) {
+    return html.replace("</body>", WATERMARK_HTML + "</body>");
+  }
+  return html + WATERMARK_HTML;
+}
+
+export default function PreviewFrame({ html, isLoading, isPro, onProClick }: PreviewFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+
+  const getExportHtml = useCallback(() => {
+    if (isPro) return html;
+    return injectWatermark(html);
+  }, [html, isPro]);
 
   const downloadHtml = useCallback(() => {
     if (!html) return;
-    const blob = new Blob([html], { type: "text/html" });
+    const exportHtml = getExportHtml();
+    const blob = new Blob([exportHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -21,21 +45,29 @@ export default function PreviewFrame({ html, isLoading }: PreviewFrameProps) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [html]);
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2000);
+  }, [html, getExportHtml]);
 
   const copyHtml = useCallback(() => {
     if (!html) return;
+    if (!isPro) {
+      onProClick();
+      return;
+    }
     navigator.clipboard.writeText(html).then(() => {
-      // Brief visual feedback could be added here
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     });
-  }, [html]);
+  }, [html, isPro, onProClick]);
 
   const openInNewTab = useCallback(() => {
     if (!html) return;
-    const blob = new Blob([html], { type: "text/html" });
+    const exportHtml = getExportHtml();
+    const blob = new Blob([exportHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
-  }, [html]);
+  }, [html, getExportHtml]);
 
   if (isLoading) {
     return (
@@ -63,17 +95,31 @@ export default function PreviewFrame({ html, isLoading }: PreviewFrameProps) {
     );
   }
 
+  // Show watermarked version in preview for free users
+  const previewHtml = isPro ? html : injectWatermark(html);
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
-        <h3 className="text-sm font-semibold text-gray-700">Preview</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-700">Preview</h3>
+          {!isPro && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+              FREE — watermarked
+            </span>
+          )}
+        </div>
         <div className="flex gap-2">
           <button
             onClick={copyHtml}
-            className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 transition-colors"
-            title="Copy HTML to clipboard"
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              isPro
+                ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                : "bg-gray-100 text-gray-400 hover:bg-amber-50 hover:text-amber-700"
+            }`}
+            title={isPro ? "Copy HTML to clipboard" : "Upgrade to Pro to copy clean HTML"}
           >
-            Copy HTML
+            {copied ? "Copied!" : isPro ? "Copy HTML" : "Copy HTML (Pro)"}
           </button>
           <button
             onClick={openInNewTab}
@@ -85,16 +131,24 @@ export default function PreviewFrame({ html, isLoading }: PreviewFrameProps) {
           <button
             onClick={downloadHtml}
             className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-500 transition-colors"
-            title="Download HTML file"
+            title={isPro ? "Download clean HTML" : "Download HTML (with watermark)"}
           >
-            Download
+            {downloaded ? "Downloaded!" : "Download"}
           </button>
+          {!isPro && (
+            <button
+              onClick={onProClick}
+              className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-400 transition-colors"
+            >
+              Remove Watermark — $29
+            </button>
+          )}
         </div>
       </div>
       <div className="flex-1 overflow-hidden bg-white">
         <iframe
           ref={iframeRef}
-          srcDoc={html}
+          srcDoc={previewHtml}
           className="h-full w-full border-0"
           sandbox="allow-scripts"
           title="Landing page preview"

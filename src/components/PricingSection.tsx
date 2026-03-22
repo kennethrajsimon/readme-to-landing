@@ -48,10 +48,10 @@ export default function PricingSection() {
             </div>
             <ul className="mt-8 space-y-4">
               {[
-                "1 landing page generation",
-                "All 5 templates",
-                "HTML download",
-                "Small watermark",
+                "Unlimited generations",
+                "2 templates (Minimal, Developer)",
+                "HTML download with watermark",
+                "Preview in browser",
               ].map((feature) => (
                 <li key={feature} className="flex items-start gap-3">
                   <svg className="mt-0.5 h-5 w-5 shrink-0 text-green-500" viewBox="0 0 20 20" fill="currentColor">
@@ -88,12 +88,12 @@ export default function PricingSection() {
             </div>
             <ul className="mt-8 space-y-4">
               {[
-                "Unlimited landing pages",
-                "All 5 templates",
-                "HTML download",
-                "No watermark",
-                "Priority support",
+                "Unlimited generations",
+                "All 5 templates (+ Startup, SaaS, Portfolio)",
+                "Clean HTML download — no watermark",
+                "Copy HTML to clipboard",
                 "Future template updates",
+                "Priority support",
               ].map((feature) => (
                 <li key={feature} className="flex items-start gap-3">
                   <svg className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" viewBox="0 0 20 20" fill="currentColor">
